@@ -1,13 +1,32 @@
 from enum import Enum
 
+from htmlnode import LeafNode
+
 
 class TextType(Enum):
-    plain = "plain"
-    bold = "bold"
-    italic = "italic"
-    code = "code"
-    link = "link"
-    image = "image"
+    TEXT = "plain"
+    BOLD = "bold"
+    ITALIC = "italic"
+    CODE = "code"
+    LINK = "link"
+    IMAGE = "image"
+
+
+def text_node_to_html_node(node):
+    if node.text_type == TextType.TEXT:
+        return LeafNode(tag=None, value=node.text, props=None)
+    elif node.text_type == TextType.BOLD:
+        return LeafNode(tag="b", value=node.text, props=None)
+    elif node.text_type == TextType.ITALIC:
+        return LeafNode(tag="i", value=node.text, props=None)
+    elif node.text_type == TextType.CODE:
+        return LeafNode(tag="code", value=node.text, props=None)
+    elif node.text_type == TextType.LINK:
+        return LeafNode(tag="a", value=node.text, props={"href": node.url})
+    elif node.text_type == TextType.IMAGE:
+        return LeafNode(tag="img", value="", props={"src": node.url, "alt": node.text})
+    else:
+        raise Exception("wrong format")
 
 
 class TextNode:
