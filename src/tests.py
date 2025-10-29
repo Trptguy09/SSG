@@ -1,7 +1,7 @@
 import unittest
 
 from delimiter import split_nodes_delimiter
-from markdown_to_blocks import markdown_to_blocks
+from markdown_to_blocks import BlockType, block_to_block_type, markdown_to_blocks
 from split_nodes import split_nodes_image, split_nodes_link
 from text_textnode_list import text_to_textnodes
 from textnode import TextNode, TextType
@@ -101,6 +101,45 @@ This is the same paragraph on a new line
                 "- This is a list\n- with items",
             ],
         )
+
+
+class TestBlockToBlockType(unittest.TestCase):
+
+    def test_heading(self):
+        block = "# This is a heading"
+        self.assertEqual(block_to_block_type(block), BlockType.HEADING)
+
+    def test_code_block(self):
+        block = "```\nprint('Hello')\n```"
+        self.assertEqual(block_to_block_type(block), BlockType.CODE)
+
+    def test_quote_block(self):
+        block = "> this is a quote\n> with two lines"
+        self.assertEqual(block_to_block_type(block), BlockType.QUOTE)
+
+    def test_unordered_list(self):
+        block = "- item 1\n- item 2\n- item 3"
+        self.assertEqual(block_to_block_type(block), BlockType.UNORDERED_LIST)
+
+    def test_ordered_list_valid(self):
+        block = "1. first\n2. second\n3. third"
+        self.assertEqual(block_to_block_type(block), BlockType.ORDERED_LIST)
+
+    def test_ordered_list_invalid_numbers(self):
+        block = "1. first\n3. second\n4. third"
+        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
+
+    def test_paragraph(self):
+        block = "This is a simple paragraph of text."
+        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
+
+    def test_mixed_invalid_quote(self):
+        block = "> valid line\nno marker line"
+        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
+
+    def test_heading_not_heading(self):
+        block = "####### too many hashes"
+        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
 
 
 if __name__ == "__main__":
