@@ -3,7 +3,7 @@ from enum import Enum
 
 from htmlnode import ParentNode
 from text_textnode_list import text_to_textnodes
-from textnode import TextNode, TextType
+from textnode import TextNode, TextType, text_node_to_html_node
 
 
 class BlockType(Enum):
@@ -52,7 +52,7 @@ def block_to_block_type(block):
 
 def text_to_children(text):
     text_nodes = text_to_textnodes(text)
-    html_nodes = [text_to_textnodes(node) for node in text_nodes]
+    html_nodes = [text_node_to_html_node(node) for node in text_nodes]
     return html_nodes
 
 
@@ -85,18 +85,20 @@ def markdown_to_html_node(markdown):
         elif block_type is BlockType.ORDERED_LIST:
             list_items = []
             for line in block.splitlines():
-                item_text = line.split(". ", 1)[1]
+                # Remove leading "1. " or "2. ", etc.
+                item_text = re.sub(r"^\d+\. ?", "", line).rstrip()
                 children = text_to_children(item_text)
-                list_items.append(ParentNode("li", children))
-            block_nodes.append(ParentNode("ol", list_items))
+                list_items.append(ParentNode("<li>", children))
+            block_nodes.append(ParentNode("<ol>", list_items))
 
         elif block_type is BlockType.UNORDERED_LIST:
             list_items = []
             for line in block.splitlines():
-                item_text = line.lstrip("- ").rstrip()
+                # Remove leading "- " only, not all "-" characters
+                item_text = line.lstrip().removeprefix("- ").rstrip()
                 children = text_to_children(item_text)
                 list_items.append(ParentNode("<li>", children))
-            block_nodes.append(ParentNode("<ol>", list_items))
+            block_nodes.append(ParentNode("<ul>", list_items))
 
         elif block_type is BlockType.CODE:
             code_text = block.strip("`").strip()
