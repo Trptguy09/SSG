@@ -5,10 +5,10 @@ def split_nodes_delimiter(old_nodes, delimiter, text_type):
     new_node = []
     for old in old_nodes:
         pieces = []
-        if old.text_type is not TextType.TEXT:
+        if old is not TextType.TEXT:
             new_node.append(old)
             continue
-        parts = old.text.split(delimiter)
+        parts = old.split(delimiter)
         if len(parts) % 2 == 0:
             raise Exception("Invalid Markdown Syntax")
         for i, chunk in enumerate(parts):
