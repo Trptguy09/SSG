@@ -1,5 +1,8 @@
 import os
 import shutil
+from pathlib import Path
+
+from markdown_to_blocks import markdown_to_html_node
 
 
 def copy_recursive(src, dst):
@@ -29,27 +32,39 @@ def copy_recursive(src, dst):
     recursive_copy(src, dst)
     print("Copy completed")
 
+
 def extract_title(markdown):
     for line in markdown.splitlines():
         stripped = line.lstrip()
-        if stripped.startswith('# ') and not stripped.startswith('##'):
+        if stripped.startswith("# ") and not stripped.startswith("##"):
             return stripped[2:].strip()
     else:
         raise Exception("No h1 title found")
 
-def generate_page(from_path, template_path, dest_path):
-    from_path =  
-    
 
+def generate_page(from_path, template_path, dest_path):
+    print(f"Generating page from {from_path} to {dest_path} using {template_path}")
+    src = from_path.open().read()
+    with template_path.open() as f:
+        temp = f.read()
+    src_html = markdown_to_html_node(src).to_html()
+    title = extract_title(src)
+    new_title = temp.replace("{{ Title }}", title)
+    html_page = new_title.replace("{{ Content }}", src_html)
+    dest_path.parent.mkdir(parents=True, exist_ok=True)
+    with dest_path.open("w") as f:
+        f.write(html_page)
 
 
 def main():
 
-    src_dir = "static"
-    dst_dir = "public"
-
-    print(f"Starting copy from '{src_dir}' to '{dst_dir}")
+    src_dir = Path("static")
+    dst_dir = Path("public")
     copy_recursive(src_dir, dst_dir)
+    content_md = Path("content/index.md")
+    template_file = Path("template.html")
+    dest_file = dst_dir / "index.html"
+    generate_page(content_md, template_file, dest_file)
 
 
 if __name__ == "__main__":
