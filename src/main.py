@@ -1,63 +1,53 @@
 import os
-import shutil
-import sys
 
 from converter import markdown_to_html_node
-from markdown_utils import generate_page
+
+# Base folder for GitHub Pages project site
+BASE = "/SSG/"  # <-- important for links if served at github.io/SSG/
+
+CONTENT_DIR = "content"
+OUTPUT_DIR = "docs"
 
 
-def generate_pages_recursive(content_dir, template_path, dest_dir, basepath="/"):
+def write_html(path, html_content):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        f.write(html_content)
+
+
+def relative_path(asset_path, page_path):
     """
-    Recursively generate HTML pages from Markdown files in content_dir.
+    Returns the relative path from page_path to asset_path
     """
-    for root, dirs, files in os.walk(content_dir):
-        rel_path = os.path.relpath(root, content_dir)
-        current_dest_dir = os.path.join(dest_dir, rel_path)
-        os.makedirs(current_dest_dir, exist_ok=True)
+    return os.path.relpath(asset_path, os.path.dirname(page_path))
 
+
+def generate_site():
+    for root, _, files in os.walk(CONTENT_DIR):
         for file in files:
-            src_file_path = os.path.join(root, file)
             if file.endswith(".md"):
-                html_file_name = file[:-3] + ".html"
-                dest_file_path = os.path.join(current_dest_dir, html_file_name)
-                print(f"Generating {dest_file_path} from {src_file_path}")
-                generate_page(
-                    from_path=src_file_path,
-                    template_path=template_path,
-                    dest_path=dest_file_path,
-                    markdown_to_html_node=markdown_to_html_node,
-                    basepath=basepath,
+                md_path = os.path.join(root, file)
+                # compute output path
+                rel_path = os.path.relpath(md_path, CONTENT_DIR)
+                output_path = os.path.join(
+                    OUTPUT_DIR, os.path.splitext(rel_path)[0], "index.html"
                 )
-            else:
-                dest_file_path = os.path.join(current_dest_dir, file)
-                shutil.copy2(src_file_path, dest_file_path)
-                print(f"Copied {src_file_path} to {dest_file_path}")
 
+                # read markdown and generate HTML
+                with open(md_path, "r") as f:
+                    md_text = f.read()
 
-def main():
-    # CLI argument for basepath, default "/"
-    basepath = sys.argv[1] if len(sys.argv) > 1 else "/"
+                html_body = markdown_to_html_node(md_text)  # returns full HTML string
 
-    docs_dir = "docs"  # build output directory
-    content_dir = "content"
-    template_file = "template.html"
-    static_dir = "static"
+                # adjust asset paths for relative linking
+                html_body = html_body.replace(
+                    "/static/", relative_path("docs/static/", output_path) + "/"
+                )
 
-    # Clean docs folder
-    if os.path.exists(docs_dir):
-        shutil.rmtree(docs_dir)
-    os.makedirs(docs_dir, exist_ok=True)
-
-    # Copy static assets
-    if os.path.exists(static_dir):
-        shutil.copytree(static_dir, docs_dir, dirs_exist_ok=True)
-        print(f"Copied static files to {docs_dir}")
-
-    # Generate all pages recursively
-    generate_pages_recursive(content_dir, template_file, docs_dir, basepath)
-
-    print(f"Site built successfully with basepath '{basepath}' in '{docs_dir}'")
+                # write to output folder
+                write_html(output_path, html_body)
+                print(f"Generated {output_path}")
 
 
 if __name__ == "__main__":
-    main()
+    generate_site()
