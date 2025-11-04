@@ -29,7 +29,7 @@ def markdown_to_html_node(markdown_text):
 
         # Code block
         if block.startswith("```") and block.endswith("```"):
-            code_text = "\n".join(block.strip("`").splitlines())
+            code_text = "\n".join(block.splitlines()[1:-1])  # safer than strip
             nodes.append(code_block_node(code_text))
             continue
 
@@ -43,9 +43,9 @@ def markdown_to_html_node(markdown_text):
 
         # Blockquote
         if block.startswith("> "):
-            content = block[2:].strip()
-            child_nodes = text_to_children(content)
-            nodes.append(ParentNode("blockquote", child_nodes))
+            lines = [line[2:] for line in block.splitlines()]
+            content = "\n".join(lines).strip()
+            nodes.append(ParentNode("blockquote", text_to_children(content)))
             continue
 
         # Ordered list
@@ -74,17 +74,3 @@ def markdown_to_html_node(markdown_text):
         nodes.extend(paragraphs_from_text(block))
 
     return nodes
-
-
-def render_node(node):
-    """
-    Recursively render nodes to HTML.
-    """
-    if hasattr(node, "value") and node.value is not None:
-        return node.value
-    elif hasattr(node, "children"):
-        inner = "".join(render_node(c) for c in node.children)
-        if hasattr(node, "tag") and node.tag:
-            return f"<{node.tag}>{inner}</{node.tag}>"
-        return inner
-    return ""

@@ -24,20 +24,20 @@ def render_node(node):
         inner_html = "".join(render_node(child) for child in node.children)
         return f"<{node.tag}>{inner_html}</{node.tag}>"
     else:  # LeafNode
-        # Try common attribute names for text content
-        if hasattr(node, "text"):
-            return str(node.text)
-        elif hasattr(node, "content"):
-            return str(node.content)
-        elif hasattr(node, "value"):
+        if hasattr(node, "value") and node.value is not None:
             return str(node.value)
-        else:
-            return str(node)  # fallback to str(node)
+        elif hasattr(node, "text") and node.text is not None:
+            return str(node.text)
+        return str(node)  # fallback
 
 
 def generate_page(
     from_path, template_path, dest_path, markdown_to_html_node, basepath="/"
 ):
+    """
+    Generate a single HTML page from a markdown file using a template.
+    Replaces placeholders and updates href/src links with the basepath.
+    """
     # Read markdown
     with open(from_path, "r", encoding="utf-8") as f:
         markdown_content = f.read()

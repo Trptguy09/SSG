@@ -4,16 +4,6 @@ import sys
 
 from converter import markdown_to_html_node
 from markdown_utils import generate_page
-from nodes import ParentNode
-from parser import code_block_node, text_to_children
-
-
-def block_to_html_node(block, block_type):
-    if block_type == "code":
-        return code_block_node(block)
-    elif block_type == "paragraph":
-        return ParentNode("div", text_to_children(block))
-    # Extend this to handle headings, lists, etc.
 
 
 def generate_pages_recursive(content_dir, template_path, dest_dir, basepath="/"):
