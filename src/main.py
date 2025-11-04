@@ -16,6 +16,14 @@ def write_html(path, html_content):
         f.write(html_content)
 
 
+def nodes_to_html(nodes):
+    """
+    Convert a list of nodes returned by markdown_to_html_node to a single HTML string.
+    Assumes each node has a __str__ method that outputs HTML.
+    """
+    return "".join(str(node) for node in nodes)
+
+
 def generate_site():
     for root, _, files in os.walk(CONTENT_DIR):
         for file in files:
@@ -26,11 +34,13 @@ def generate_site():
                     OUTPUT_DIR, os.path.splitext(rel_path)[0], "index.html"
                 )
 
-                # Read markdown
+                # Read Markdown
                 with open(md_path) as f:
                     md_text = f.read()
 
-                html_body = markdown_to_html_node(md_text)
+                # Convert Markdown to HTML nodes
+                nodes = markdown_to_html_node(md_text)
+                html_body = nodes_to_html(nodes)
 
                 # Load template
                 with open("template.html") as tf:
@@ -40,10 +50,11 @@ def generate_site():
                 html_output = template.replace("{{ Title }}", os.path.splitext(file)[0])
                 html_output = html_output.replace("{{ Content }}", html_body)
 
-                # Replace absolute links to use basepath
+                # Fix absolute asset paths to respect basepath
                 html_output = html_output.replace('href="/', f'href="{basepath}')
                 html_output = html_output.replace('src="/', f'src="{basepath}')
 
+                # Write HTML
                 write_html(output_path, html_output)
                 print(f"Generated {output_path}")
 

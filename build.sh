@@ -1,12 +1,14 @@
 #!/bin/bash
-# Build the site for GitHub Pages
+# Build production site for GitHub Pages
 
-REPO_NAME="SSG"  # replace with your repo name
+REPO_NAME="SSG"  # Replace with your GitHub repo name
 rm -rf docs
 mkdir -p docs
+
+# Copy static assets
 cp -r static docs/static
 
-# Run the generator with basepath pointing to GitHub Pages project site
+# Generate pages with GitHub Pages basepath
 python3 src/main.py "/$REPO_NAME/"
 
 # Prevent Jekyll from ignoring files
