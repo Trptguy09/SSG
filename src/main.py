@@ -13,7 +13,7 @@ def block_to_html_node(block, block_type):
         return code_block_node(block)
     elif block_type == "paragraph":
         return ParentNode("div", text_to_children(block))
-    # You can extend this to handle headings, lists, etc.
+    # Extend this to handle headings, lists, etc.
 
 
 def generate_pages_recursive(content_dir, template_path, dest_dir, basepath="/"):
@@ -21,7 +21,6 @@ def generate_pages_recursive(content_dir, template_path, dest_dir, basepath="/")
     Recursively generate HTML pages from Markdown files in content_dir.
     """
     for root, dirs, files in os.walk(content_dir):
-        # Compute relative path to maintain structure
         rel_path = os.path.relpath(root, content_dir)
         current_dest_dir = os.path.join(dest_dir, rel_path)
         os.makedirs(current_dest_dir, exist_ok=True)
@@ -37,20 +36,19 @@ def generate_pages_recursive(content_dir, template_path, dest_dir, basepath="/")
                     template_path=template_path,
                     dest_path=dest_file_path,
                     markdown_to_html_node=markdown_to_html_node,
-                    basepath=basepath,  # Pass basepath
+                    basepath=basepath,
                 )
             else:
-                # Copy other non-Markdown files
                 dest_file_path = os.path.join(current_dest_dir, file)
                 shutil.copy2(src_file_path, dest_file_path)
                 print(f"Copied {src_file_path} to {dest_file_path}")
 
 
 def main():
-    # Grab basepath from CLI argument, default "/"
+    # CLI argument for basepath, default "/"
     basepath = sys.argv[1] if len(sys.argv) > 1 else "/"
 
-    docs_dir = "docs"
+    docs_dir = "docs"  # build output directory
     content_dir = "content"
     template_file = "template.html"
     static_dir = "static"
