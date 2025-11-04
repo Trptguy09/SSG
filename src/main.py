@@ -1,5 +1,6 @@
 import os
 import shutil
+import sys
 
 from converter import markdown_to_html_node
 from markdown_utils import generate_page
@@ -15,7 +16,7 @@ def block_to_html_node(block, block_type):
     # You can extend this to handle headings, lists, etc.
 
 
-def generate_pages_recursive(content_dir, template_path, dest_dir):
+def generate_pages_recursive(content_dir, template_path, dest_dir, basepath="/"):
     """
     Recursively generate HTML pages from Markdown files in content_dir.
     """
@@ -36,6 +37,7 @@ def generate_pages_recursive(content_dir, template_path, dest_dir):
                     template_path=template_path,
                     dest_path=dest_file_path,
                     markdown_to_html_node=markdown_to_html_node,
+                    basepath=basepath,  # Pass basepath
                 )
             else:
                 # Copy other non-Markdown files
@@ -45,23 +47,28 @@ def generate_pages_recursive(content_dir, template_path, dest_dir):
 
 
 def main():
-    public_dir = "public"
+    # Grab basepath from CLI argument, default "/"
+    basepath = sys.argv[1] if len(sys.argv) > 1 else "/"
+
+    docs_dir = "docs"
     content_dir = "content"
     template_file = "template.html"
     static_dir = "static"
 
-    # Clean public folder
-    if os.path.exists(public_dir):
-        shutil.rmtree(public_dir)
-    os.makedirs(public_dir, exist_ok=True)
+    # Clean docs folder
+    if os.path.exists(docs_dir):
+        shutil.rmtree(docs_dir)
+    os.makedirs(docs_dir, exist_ok=True)
 
     # Copy static assets
     if os.path.exists(static_dir):
-        shutil.copytree(static_dir, public_dir, dirs_exist_ok=True)
-        print(f"Copied static files to {public_dir}")
+        shutil.copytree(static_dir, docs_dir, dirs_exist_ok=True)
+        print(f"Copied static files to {docs_dir}")
 
     # Generate all pages recursively
-    generate_pages_recursive(content_dir, template_file, public_dir)
+    generate_pages_recursive(content_dir, template_file, docs_dir, basepath)
+
+    print(f"Site built successfully with basepath '{basepath}' in '{docs_dir}'")
 
 
 if __name__ == "__main__":
