@@ -1,13 +1,19 @@
 from delimiter import split_nodes_delimiter
-from split_nodes import split_nodes_image, split_nodes_link
 from textnode import TextNode, TextType
 
 
 def text_to_textnodes(text):
     node_list = [TextNode(text, TextType.TEXT)]
+
+    # Bold (**text**)
     node_list = split_nodes_delimiter(node_list, "**", TextType.BOLD)
+
+    # Italic (*text*)
     node_list = split_nodes_delimiter(node_list, "*", TextType.ITALIC)
+
+    # Inline code (`code`)
     node_list = split_nodes_delimiter(node_list, "`", TextType.CODE)
-    node_list = split_nodes_image(node_list)
-    node_list = split_nodes_link(node_list)
+
+    # You can add more inline types (links, etc.) here
+
     return node_list
