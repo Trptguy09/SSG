@@ -1,9 +1,10 @@
 import os
+import sys
 
-from converter import markdown_to_html_node
+from converter import markdown_to_html_node  # your parser
 
-# Base folder for GitHub Pages project site
-BASE = "/SSG/"  # <-- important for links if served at github.io/SSG/
+# Get basepath from CLI argument, default to '/'
+basepath = sys.argv[1] if len(sys.argv) > 1 else "/"
 
 CONTENT_DIR = "content"
 OUTPUT_DIR = "docs"
@@ -15,37 +16,35 @@ def write_html(path, html_content):
         f.write(html_content)
 
 
-def relative_path(asset_path, page_path):
-    """
-    Returns the relative path from page_path to asset_path
-    """
-    return os.path.relpath(asset_path, os.path.dirname(page_path))
-
-
 def generate_site():
     for root, _, files in os.walk(CONTENT_DIR):
         for file in files:
             if file.endswith(".md"):
                 md_path = os.path.join(root, file)
-                # compute output path
                 rel_path = os.path.relpath(md_path, CONTENT_DIR)
                 output_path = os.path.join(
                     OUTPUT_DIR, os.path.splitext(rel_path)[0], "index.html"
                 )
 
-                # read markdown and generate HTML
-                with open(md_path, "r") as f:
+                # Read markdown
+                with open(md_path) as f:
                     md_text = f.read()
 
-                html_body = markdown_to_html_node(md_text)  # returns full HTML string
+                html_body = markdown_to_html_node(md_text)
 
-                # adjust asset paths for relative linking
-                html_body = html_body.replace(
-                    "/static/", relative_path("docs/static/", output_path) + "/"
-                )
+                # Load template
+                with open("template.html") as tf:
+                    template = tf.read()
 
-                # write to output folder
-                write_html(output_path, html_body)
+                # Replace placeholders
+                html_output = template.replace("{{ Title }}", os.path.splitext(file)[0])
+                html_output = html_output.replace("{{ Content }}", html_body)
+
+                # Replace absolute links to use basepath
+                html_output = html_output.replace('href="/', f'href="{basepath}')
+                html_output = html_output.replace('src="/', f'src="{basepath}')
+
+                write_html(output_path, html_output)
                 print(f"Generated {output_path}")
 
 

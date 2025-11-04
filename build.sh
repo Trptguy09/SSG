@@ -1,17 +1,15 @@
 #!/bin/bash
-# Clean previous build
+# Build the site for GitHub Pages
+
+REPO_NAME="SSG"  # replace with your repo name
 rm -rf docs
-
-# Recreate docs folder
 mkdir -p docs
-
-# Copy static assets
 cp -r static docs/static
 
-# Generate HTML pages
-python3 src/main.py
+# Run the generator with basepath pointing to GitHub Pages project site
+python3 src/main.py "/$REPO_NAME/"
 
-# Prevent GitHub Pages from ignoring files starting with _
+# Prevent Jekyll from ignoring files
 touch docs/.nojekyll
 
-echo "Build complete. Open docs/index.html to preview locally."
+echo "Production build complete in docs/ directory."
