@@ -1,7 +1,7 @@
 import re
 
-from .nodes import ParentNode
-from .parser import (
+from nodes import ParentNode
+from parser import (
     code_block_node,
     paragraphs_from_text,
     parse_inline,

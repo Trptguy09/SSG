@@ -1,6 +1,6 @@
 import re
 
-from .nodes import LeafNode, ParentNode
+from nodes import LeafNode, ParentNode
 
 
 def parse_inline(text):
