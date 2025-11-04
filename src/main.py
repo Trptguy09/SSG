@@ -1,8 +1,18 @@
 import os
 import shutil
 
-from converter import markdown_to_html_node
-from markdown_utils import generate_page
+from .converter import markdown_to_html_node
+from .markdown_utils import generate_page
+from .parser import code_block_node, text_to_children
+
+
+def block_to_html_node(block, block_type):
+    if block_type == "code":
+        return code_block_node(block)
+    elif block_type == "paragraph":
+        return ParentNode("div", text_to_children(block))  # Or wrap <p> individually
+    # handle headings, lists, etc. as before
+
 
 # Clean public
 public_dir = "public"
