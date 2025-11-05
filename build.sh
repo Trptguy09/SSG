@@ -1,14 +1,14 @@
 #!/bin/bash
 set -e
 
-# Ensure clean build
+# Remove old docs directory
 rm -rf docs
 mkdir docs
 
-# Run Python builder
-python3 src/main.py
+# Build site for GitHub Pages (replace REPO_NAME with your repo name)
+python3 src/main.py "/SSG/"
 
-# Add .nojekyll to bypass Jekyll processing
+# Add .nojekyll to avoid Jekyll processing
 touch docs/.nojekyll
 
 echo "✅ Site built successfully into docs/"

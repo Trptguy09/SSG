@@ -1,5 +1,6 @@
 import os
 import shutil
+import sys
 
 from converter import markdown_to_html_node
 
@@ -11,16 +12,15 @@ TEMPLATE_FILE = "template.html"
 
 def copy_static():
     """Copy static assets to the docs directory."""
-    static_dest = os.path.join(OUTPUT_DIR)
     if os.path.exists(STATIC_DIR):
-        shutil.copytree(STATIC_DIR, os.path.join(static_dest, ""), dirs_exist_ok=True)
+        shutil.copytree(STATIC_DIR, OUTPUT_DIR, dirs_exist_ok=True)
         print("Copied static files to docs")
     else:
         print("No static directory found; skipping static copy.")
 
 
-def generate_html_from_md(md_path, html_path):
-    """Convert a Markdown file to an HTML page using the template."""
+def generate_page(md_path, html_path, basepath="/"):
+    """Generate a single HTML page from Markdown."""
     with open(md_path, "r", encoding="utf-8") as f:
         markdown_text = f.read()
 
@@ -30,17 +30,26 @@ def generate_html_from_md(md_path, html_path):
     with open(TEMPLATE_FILE, "r", encoding="utf-8") as f:
         template = f.read()
 
-    full_html = template.replace("{{ Content }}", html_body)
+    # Replace placeholders
+    title = os.path.splitext(os.path.basename(md_path))[0].title()
+    full_html = template.replace("{{ Title }}", title)
+    full_html = full_html.replace("{{ Content }}", html_body)
 
+    # Replace href/src starting with / with basepath
+    full_html = full_html.replace('href="/', f'href="{basepath}')
+    full_html = full_html.replace('src="/', f'src="{basepath}')
+
+    # Ensure directory exists
     os.makedirs(os.path.dirname(html_path), exist_ok=True)
+
     with open(html_path, "w", encoding="utf-8") as f:
         f.write(full_html)
 
     print(f"Generated {html_path} from {md_path}")
 
 
-def generate_site():
-    """Recursively build all Markdown files under CONTENT_DIR into OUTPUT_DIR."""
+def generate_pages_recursive(basepath="/"):
+    """Recursively generate all Markdown files in content/ to docs/."""
     copy_static()
 
     for root, _, files in os.walk(CONTENT_DIR):
@@ -49,17 +58,18 @@ def generate_site():
                 continue
 
             md_path = os.path.join(root, filename)
-
-            # Compute relative path inside content/
             rel_path = os.path.relpath(md_path, CONTENT_DIR)
-
-            # Remove .md extension and make an index.html inside its folder
             rel_dir = os.path.splitext(rel_path)[0]
-            output_dir = os.path.join(OUTPUT_DIR, rel_dir)
-            html_path = os.path.join(output_dir, "index.html")
 
-            generate_html_from_md(md_path, html_path)
+            # Root index.md should map to docs/index.html
+            if rel_dir == "index":
+                html_path = os.path.join(OUTPUT_DIR, "index.html")
+            else:
+                html_path = os.path.join(OUTPUT_DIR, rel_dir, "index.html")
+
+            generate_page(md_path, html_path, basepath)
 
 
 if __name__ == "__main__":
-    generate_site()
+    basepath = sys.argv[1] if len(sys.argv) > 1 else "/"
+    generate_pages_recursive(basepath)
