@@ -11,52 +11,62 @@ OUTPUT_DIR = "docs"
 
 
 def write_html(path, html_content):
+    """Write HTML content to a file, creating directories as needed."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w") as f:
+    with open(path, "w", encoding="utf-8") as f:
         f.write(html_content)
 
 
 def nodes_to_html(nodes):
     """
-    Convert a list of nodes returned by markdown_to_html_node to a single HTML string.
-    Assumes each node has a __str__ method that outputs HTML.
+    Convert a list of HTML node objects to an HTML string.
+    Each node must implement __str__() that outputs HTML.
     """
     return "".join(str(node) for node in nodes)
 
 
 def generate_site():
+    """Walk through content/, convert markdown to HTML, and write to docs/."""
     for root, _, files in os.walk(CONTENT_DIR):
         for file in files:
-            if file.endswith(".md"):
-                md_path = os.path.join(root, file)
-                rel_path = os.path.relpath(md_path, CONTENT_DIR)
-                output_path = os.path.join(
-                    OUTPUT_DIR, os.path.splitext(rel_path)[0], "index.html"
-                )
+            if not file.endswith(".md"):
+                continue
 
-                # Read Markdown
-                with open(md_path) as f:
-                    md_text = f.read()
+            # Markdown source path
+            md_path = os.path.join(root, file)
+            rel_path = os.path.relpath(md_path, CONTENT_DIR)
+            name, _ = os.path.splitext(rel_path)
 
-                # Convert Markdown to HTML nodes
-                nodes = markdown_to_html_node(md_text)
-                html_body = nodes_to_html(nodes)
+            # Determine output HTML path
+            if name.lower() == "index":
+                output_path = os.path.join(OUTPUT_DIR, "index.html")
+            else:
+                output_path = os.path.join(OUTPUT_DIR, name, "index.html")
 
-                # Load template
-                with open("template.html") as tf:
-                    template = tf.read()
+            # Read Markdown content
+            with open(md_path, "r", encoding="utf-8") as f:
+                md_text = f.read()
 
-                # Replace placeholders
-                html_output = template.replace("{{ Title }}", os.path.splitext(file)[0])
-                html_output = html_output.replace("{{ Content }}", html_body)
+            # Convert Markdown to HTML nodes
+            nodes = markdown_to_html_node(md_text)
+            html_body = nodes_to_html(nodes)
 
-                # Fix absolute asset paths to respect basepath
-                html_output = html_output.replace('href="/', f'href="{basepath}')
-                html_output = html_output.replace('src="/', f'src="{basepath}')
+            # Load template
+            with open("template.html", "r", encoding="utf-8") as tf:
+                template = tf.read()
 
-                # Write HTML
-                write_html(output_path, html_output)
-                print(f"Generated {output_path}")
+            # Insert title and content
+            title = os.path.basename(name).capitalize()
+            html_output = template.replace("{{ Title }}", title)
+            html_output = html_output.replace("{{ Content }}", html_body)
+
+            # Adjust asset paths to respect basepath
+            html_output = html_output.replace('href="/', f'href="{basepath}')
+            html_output = html_output.replace('src="/', f'src="{basepath}')
+
+            # Write output file
+            write_html(output_path, html_output)
+            print(f"Generated {output_path}")
 
 
 if __name__ == "__main__":
