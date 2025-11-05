@@ -11,7 +11,7 @@ from parser import (
 
 def markdown_to_html_node(markdown_text):
     """
-    Convert full markdown text into a list of HTML nodes.
+    Convert full markdown text into a single HTML node tree.
     Handles:
       - Headings (# to ######)
       - Paragraphs
@@ -49,7 +49,7 @@ def markdown_to_html_node(markdown_text):
             continue
 
         # Ordered list
-        if re.match(r"^(\d+\.)\s+", block):
+        if re.match(r"^\d+\.\s+", block):
             list_items = []
             for line in block.splitlines():
                 m = re.match(r"^\d+\.\s+(.*)", line)
@@ -73,4 +73,5 @@ def markdown_to_html_node(markdown_text):
         # Paragraph
         nodes.extend(paragraphs_from_text(block))
 
-    return nodes
+    # ✅ Wrap everything inside a single root node so .to_html() works
+    return ParentNode("div", nodes)
