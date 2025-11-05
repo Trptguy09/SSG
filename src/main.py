@@ -1,65 +1,64 @@
 import os
-import sys
+import shutil
 
-from converter import markdown_to_html_node  # your markdown parser
-
-# Get basepath from CLI argument, default to ''
-# For GitHub Pages project sites, use "/SSG"
-basepath = sys.argv[1] if len(sys.argv) > 1 else ""
+from converter import markdown_to_html_node
 
 CONTENT_DIR = "content"
 OUTPUT_DIR = "docs"
+STATIC_DIR = "static"
+TEMPLATE_FILE = "template.html"
 
 
-def write_html(path, html_content):
-    """Write HTML content to a file, creating directories as needed."""
-    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(html_content)
+def copy_static():
+    """Copy static assets to the docs directory."""
+    static_dest = os.path.join(OUTPUT_DIR)
+    if os.path.exists(STATIC_DIR):
+        shutil.copytree(STATIC_DIR, os.path.join(static_dest, ""), dirs_exist_ok=True)
+        print("Copied static files to docs")
+    else:
+        print("No static directory found; skipping static copy.")
+
+
+def generate_html_from_md(md_path, html_path):
+    """Convert a Markdown file to an HTML page using the template."""
+    with open(md_path, "r", encoding="utf-8") as f:
+        markdown_text = f.read()
+
+    html_node = markdown_to_html_node(markdown_text)
+    html_body = html_node.to_html()
+
+    with open(TEMPLATE_FILE, "r", encoding="utf-8") as f:
+        template = f.read()
+
+    full_html = template.replace("{{ Content }}", html_body)
+
+    os.makedirs(os.path.dirname(html_path), exist_ok=True)
+    with open(html_path, "w", encoding="utf-8") as f:
+        f.write(full_html)
+
+    print(f"Generated {html_path} from {md_path}")
 
 
 def generate_site():
-    """Walk through content/, convert markdown to HTML, and write to docs/."""
+    """Recursively build all Markdown files under CONTENT_DIR into OUTPUT_DIR."""
+    copy_static()
+
     for root, _, files in os.walk(CONTENT_DIR):
-        for file in files:
-            if not file.endswith(".md"):
+        for filename in files:
+            if not filename.endswith(".md"):
                 continue
 
-            # Markdown source path
-            md_path = os.path.join(root, file)
+            md_path = os.path.join(root, filename)
+
+            # Compute relative path inside content/
             rel_path = os.path.relpath(md_path, CONTENT_DIR)
-            name, _ = os.path.splitext(rel_path)
 
-            # Determine output HTML path
-            if name.lower() == "index":
-                output_path = os.path.join(OUTPUT_DIR, "index.html")
-            else:
-                output_path = os.path.join(OUTPUT_DIR, name, "index.html")
+            # Remove .md extension and make an index.html inside its folder
+            rel_dir = os.path.splitext(rel_path)[0]
+            output_dir = os.path.join(OUTPUT_DIR, rel_dir)
+            html_path = os.path.join(output_dir, "index.html")
 
-            # Read Markdown content
-            with open(md_path, "r", encoding="utf-8") as f:
-                md_text = f.read()
-
-            # Convert Markdown to an HTML node tree
-            root_node = markdown_to_html_node(md_text)
-            html_body = root_node.to_html()  # ✅ convert to HTML string
-
-            # Load the template
-            with open("template.html", "r", encoding="utf-8") as tf:
-                template = tf.read()
-
-            # Insert title and content
-            title = os.path.basename(name).capitalize() or "Index"
-            html_output = template.replace("{{ Title }}", title)
-            html_output = html_output.replace("{{ Content }}", html_body)
-
-            # Fix asset paths to respect basepath (important for GitHub Pages)
-            html_output = html_output.replace('href="/', f'href="{basepath}/')
-            html_output = html_output.replace('src="/', f'src="{basepath}/')
-
-            # Write output file
-            write_html(output_path, html_output)
-            print(f"✅ Generated {output_path}")
+            generate_html_from_md(md_path, html_path)
 
 
 if __name__ == "__main__":
