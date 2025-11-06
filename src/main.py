@@ -1,57 +1,31 @@
 import os
 import shutil
+import sys
 
-from converter import markdown_to_html_node
+from copystatic import copy_files_recursive
+from gencontent import generate_pages_recursive
 
-CONTENT_DIR = "content"
-OUTPUT_DIR = "docs"
-STATIC_DIR = "static"
-TEMPLATE_FILE = "template.html"
-
-
-def copy_static():
-    """Copy static assets to the docs directory."""
-    if os.path.exists(STATIC_DIR):
-        shutil.copytree(STATIC_DIR, OUTPUT_DIR, dirs_exist_ok=True)
-        print("Copied static files to docs")
-    else:
-        print("No static directory found; skipping static copy.")
+dir_path_static = "./static"
+dir_path_public = "./docs"
+dir_path_content = "./content"
+template_path = "./template.html"
+default_basepath = "/"
 
 
-def generate_page(md_path, html_path, basepath="/"):
-    """Generate a single HTML page from Markdown."""
-    with open(md_path, "r", encoding="utf-8") as f:
-        markdown_text = f.read()
+def main():
+    basepath = default_basepath
+    if len(sys.argv) > 1:
+        basepath = sys.argv[1]
 
-    html_node = markdown_to_html_node(markdown_text)
-    html_body = html_node.to_html()
+    print("Deleting public directory...")
+    if os.path.exists(dir_path_public):
+        shutil.rmtree(dir_path_public)
 
-    with open(TEMPLATE_FILE, "r", encoding="utf-8") as f:
-        template = f.read()
+    print("Copying static files to public directory...")
+    copy_files_recursive(dir_path_static, dir_path_public)
 
-    # Replace placeholders
-    title = os.path.splitext(os.path.basename(md_path))[0].title()
-    full_html = template.replace("{{ Title }}", title)
-    full_html = full_html.replace("{{ Content }}", html_body)
-
-    os.makedirs(os.path.dirname(html_path), exist_ok=True)
-    with open(html_path, "w", encoding="utf-8") as f:
-        f.write(full_html)
-    print(f"Generated {html_path} from {md_path}")
+    print("Generating content...")
+    generate_pages_recursive(dir_path_content, template_path, dir_path_public, basepath)
 
 
-def generate_site():
-    copy_static()
-    for root, dirs, files in os.walk(CONTENT_DIR):
-        for file in files:
-            if file.endswith(".md"):
-                md_path = os.path.join(root, file)
-                rel_path = os.path.relpath(md_path, CONTENT_DIR)
-                html_path = os.path.join(
-                    OUTPUT_DIR, os.path.splitext(rel_path)[0], "index.html"
-                )
-                generate_page(md_path, html_path)
-
-
-if __name__ == "__main__":
-    generate_site()
+main()
