@@ -1,67 +1,43 @@
 import os
+import re
 
-from nodes import ParentNode
 
-
-def extract_title(markdown_content):
+def extract_title(markdown_text):
     """
-    Extracts the first H1 (# ) title from the markdown content.
-    Raises an exception if no H1 is found.
+    Extracts the first H1 header (# Heading) from markdown_text.
+    Returns a string like 'Heading Title' or 'Untitled' if none found.
     """
-    for line in markdown_content.splitlines():
-        if line.strip().startswith("# "):
-            return line.strip("# ").strip()
-    raise ValueError("No H1 title found in markdown content.")
+    match = re.search(r"^# (.+)$", markdown_text, re.MULTILINE)
+    if match:
+        return match.group(1).strip()
+    return "Untitled"
 
 
-def render_node(node):
+def generate_page(html_body, template_path, output_path, markdown_text=None):
     """
-    Recursively render a ParentNode or LeafNode (or list) to HTML string.
+    Generates a full HTML page by inserting the HTML body into the template.
+    If markdown_text is provided, the <title> tag will be replaced with the H1 title.
     """
-    if isinstance(node, list):
-        return "".join(render_node(child) for child in node)
-    elif hasattr(node, "children"):  # ParentNode
-        inner_html = "".join(render_node(child) for child in node.children)
-        return f"<{node.tag}>{inner_html}</{node.tag}>"
-    else:  # LeafNode
-        if hasattr(node, "value") and node.value is not None:
-            return str(node.value)
-        elif hasattr(node, "text") and node.text is not None:
-            return str(node.text)
-        return str(node)  # fallback
 
-
-def generate_page(
-    from_path, template_path, dest_path, markdown_to_html_node, basepath="/"
-):
-    """
-    Generate a single HTML page from a markdown file using a template.
-    Replaces placeholders and updates href/src links with the basepath.
-    """
-    # Read markdown
-    with open(from_path, "r", encoding="utf-8") as f:
-        markdown_content = f.read()
-
-    # Convert markdown to HTML nodes and render
-    nodes = markdown_to_html_node(markdown_content)
-    html_from_markdown = render_node(ParentNode("div", nodes))
-
-    # Read template
+    # Load template
+    if not os.path.exists(template_path):
+        raise FileNotFoundError(f"Template file not found: {template_path}")
     with open(template_path, "r", encoding="utf-8") as f:
-        template_content = f.read()
+        template = f.read()
 
-    # Replace placeholders
-    html_content = template_content
-    html_content = html_content.replace("{{ Title }}", extract_title(markdown_content))
-    html_content = html_content.replace("{{ Content }}", html_from_markdown)
+    # Replace content placeholder
+    html_output = template.replace("{{ Content }}", html_body)
 
-    # Replace absolute paths with basepath
-    html_content = html_content.replace('href="/', f'href="{basepath}')
-    html_content = html_content.replace('src="/', f'src="{basepath}')
+    # Replace title placeholder (optional)
+    if markdown_text and "{{ Title }}" in template:
+        title = extract_title(markdown_text)
+        html_output = html_output.replace("{{ Title }}", title)
 
-    # Ensure destination directory exists
-    os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+    # Ensure output directory exists
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
     # Write final HTML
-    with open(dest_path, "w", encoding="utf-8") as f:
-        f.write(html_content)
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(html_output)
+
+    return output_path
