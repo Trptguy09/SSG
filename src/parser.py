@@ -5,77 +5,65 @@ from nodes import LeafNode, ParentNode
 
 def parse_inline(text):
     """
-    Parse inline Markdown and return a list of nodes.
+    Parse inline Markdown elements and return a list of HTML nodes.
     Supports:
       - Bold: **text**
-      - Italic: *text* or _text_
-      - Link: [label](url)
+      - Italic: *text*
       - Inline code: `code`
-      - Image: ![alt](url)
+      - Links: [label](url)
+      - Images: ![alt](url)
     """
-    if not text:
-        return []
+    nodes = []
+    pos = 0
 
     patterns = [
         (
-            r"!\[(.*?)\]\((.*?)\)",
-            lambda m: LeafNode("img", {"src": m[1], "alt": m[0]}, void=True),
+            r"!\[([^\]]+)\]\(([^)]+)\)",
+            lambda m: LeafNode("img", "", {"src": m.group(2), "alt": m.group(1)}),
         ),
-        (r"\*\*(.*?)\*\*", lambda m: ParentNode("b", [LeafNode(None, m[0])])),
-        (r"\*(.*?)\*", lambda m: ParentNode("i", [LeafNode(None, m[0])])),
-        (r"_(.*?)_", lambda m: ParentNode("i", [LeafNode(None, m[0])])),
         (
-            r"\[(.*?)\]\((.*?)\)",
-            lambda m: ParentNode("a", [LeafNode(None, m[0])], href=m[1]),
+            r"\[([^\]]+)\]\(([^)]+)\)",
+            lambda m: ParentNode(
+                "a", [LeafNode(None, m.group(1))], {"href": m.group(2)}
+            ),
         ),
-        (r"`(.*?)`", lambda m: LeafNode("code", m[0])),
+        (r"\*\*([^*]+)\*\*", lambda m: ParentNode("b", [LeafNode(None, m.group(1))])),
+        (r"\*([^*]+)\*", lambda m: ParentNode("i", [LeafNode(None, m.group(1))])),
+        (r"`([^`]+)`", lambda m: ParentNode("code", [LeafNode(None, m.group(1))])),
     ]
 
-    def split_text(t):
-        for pattern, constructor in patterns:
-            match = re.search(pattern, t)
+    while pos < len(text):
+        match = None
+        for pattern, handler in patterns:
+            match = re.search(pattern, text[pos:])
             if match:
                 start, end = match.span()
-                before = t[:start]
-                matched_node = constructor(match.groups())
-                after = t[end:]
-                return split_text(before) + [matched_node] + split_text(after)
-        return [LeafNode(None, t)]
+                start += pos
+                end += pos
+                # Plain text before match
+                if start > pos:
+                    nodes.append(LeafNode(None, text[pos:start]))
+                nodes.append(handler(match))
+                pos = end
+                break
+        if not match:
+            nodes.append(LeafNode(None, text[pos:]))
+            break
 
-    nodes = split_text(text)
-
-    # Remove empty nodes
-    def is_non_empty_node(node):
-        if isinstance(node, LeafNode):
-            return node.value not in (None, "")
-        elif isinstance(node, ParentNode):
-            return bool(node.children)
-        return False
-
-    return [n for n in nodes if is_non_empty_node(n)]
+    return nodes
 
 
 def text_to_children(text):
-    """
-    Returns inline nodes only (no <p> wrappers).
-    """
-    return parse_inline(text)
+    """Convert plain text into inline nodes."""
+    return parse_inline(text.strip())
 
 
 def paragraphs_from_text(text):
-    """
-    Wraps each non-empty line in a <p> node (for real paragraphs).
-    """
-    children = []
-    for line in text.splitlines():
-        line = line.strip()
-        if line:
-            children.append(ParentNode("p", parse_inline(line)))
-    return children
+    """Split text into paragraphs and wrap each in <p> tags."""
+    paragraphs = [p.strip() for p in text.split("\n") if p.strip()]
+    return [ParentNode("p", parse_inline(p)) for p in paragraphs]
 
 
-def code_block_node(code_text):
-    """
-    Converts code block text into <pre><code>…</code></pre>
-    """
-    return ParentNode("pre", [ParentNode("code", [LeafNode(None, code_text)])])
+def code_block_node(code):
+    """Wrap code block text inside <pre><code> tags."""
+    return ParentNode("pre", [ParentNode("code", [LeafNode(None, code.strip())])])

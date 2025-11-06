@@ -1,6 +1,5 @@
 import os
 import shutil
-import sys
 
 from converter import markdown_to_html_node
 
@@ -35,41 +34,24 @@ def generate_page(md_path, html_path, basepath="/"):
     full_html = template.replace("{{ Title }}", title)
     full_html = full_html.replace("{{ Content }}", html_body)
 
-    # Replace href/src starting with / with basepath
-    full_html = full_html.replace('href="/', f'href="{basepath}')
-    full_html = full_html.replace('src="/', f'src="{basepath}')
-
-    # Ensure directory exists
     os.makedirs(os.path.dirname(html_path), exist_ok=True)
-
     with open(html_path, "w", encoding="utf-8") as f:
         f.write(full_html)
-
     print(f"Generated {html_path} from {md_path}")
 
 
-def generate_pages_recursive(basepath="/"):
-    """Recursively generate all Markdown files in content/ to docs/."""
+def generate_site():
     copy_static()
-
-    for root, _, files in os.walk(CONTENT_DIR):
-        for filename in files:
-            if not filename.endswith(".md"):
-                continue
-
-            md_path = os.path.join(root, filename)
-            rel_path = os.path.relpath(md_path, CONTENT_DIR)
-            rel_dir = os.path.splitext(rel_path)[0]
-
-            # Root index.md should map to docs/index.html
-            if rel_dir == "index":
-                html_path = os.path.join(OUTPUT_DIR, "index.html")
-            else:
-                html_path = os.path.join(OUTPUT_DIR, rel_dir, "index.html")
-
-            generate_page(md_path, html_path, basepath)
+    for root, dirs, files in os.walk(CONTENT_DIR):
+        for file in files:
+            if file.endswith(".md"):
+                md_path = os.path.join(root, file)
+                rel_path = os.path.relpath(md_path, CONTENT_DIR)
+                html_path = os.path.join(
+                    OUTPUT_DIR, os.path.splitext(rel_path)[0], "index.html"
+                )
+                generate_page(md_path, html_path)
 
 
 if __name__ == "__main__":
-    basepath = sys.argv[1] if len(sys.argv) > 1 else "/"
-    generate_pages_recursive(basepath)
+    generate_site()

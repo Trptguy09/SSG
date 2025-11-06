@@ -1,54 +1,49 @@
-class LeafNode:
-    """
-    Represents a leaf HTML node (text, inline code, or void elements like <img>)
-    """
+class HTMLNode:
+    """Base class for HTML nodes."""
 
-    def __init__(self, tag, value=None, void=False):
-        """
-        :param tag: HTML tag name (e.g., "code", "img"), or None for plain text
-        :param value: Text content or dictionary of attributes for void elements
-        :param void: True if this is a void element (e.g., <img />)
-        """
-        self.tag = tag
-        self.value = value
-        self.void = void
-
-    def to_html(self):
-        if self.void:
-            # Void element: value is expected to be a dict of attributes
-            if isinstance(self.value, dict):
-                attrs = " ".join(f'{k}="{v}"' for k, v in self.value.items())
-                return f"<{self.tag} {attrs} />"
-            else:
-                return f"<{self.tag} />"
-        elif self.tag:
-            # Inline element with text content
-            return f"<{self.tag}>{self.value}</{self.tag}>"
-        else:
-            # Plain text node
-            return self.value or ""
-
-
-class ParentNode:
-    """
-    Represents a parent HTML node with children (e.g., <p>, <div>, <a>)
-    """
-
-    def __init__(self, tag, children=None, **attrs):
-        """
-        :param tag: HTML tag name (e.g., "p", "a", "div")
-        :param children: List of child nodes (LeafNode or ParentNode)
-        :param attrs: Optional HTML attributes (e.g., href="url")
-        """
+    def __init__(self, tag=None, children=None, text=None, props=None):
         self.tag = tag
         self.children = children or []
-        self.attrs = attrs  # HTML attributes like href
+        self.text = text or ""
+        self.props = props or {}
+
+    def props_to_html(self):
+        """Convert props dictionary to HTML attributes."""
+        if not self.props:
+            return ""
+        return " " + " ".join(f'{key}="{value}"' for key, value in self.props.items())
 
     def to_html(self):
-        # Build attribute string
-        attr_str = " ".join(f'{k}="{v}"' for k, v in self.attrs.items())
-        if attr_str:
-            attr_str = " " + attr_str
-        # Render children recursively
+        """Render node to HTML string. Must be overridden."""
+        raise NotImplementedError("Subclasses must implement to_html().")
+
+
+class LeafNode(HTMLNode):
+    """Represents an HTML element with no children (text or self-closing)."""
+
+    def __init__(self, tag=None, text="", props=None):
+        super().__init__(tag, None, text, props)
+
+    def to_html(self):
+        if self.tag is None:
+            # plain text node
+            return self.text
+        elif self.tag == "img":
+            # self-closing tag
+            return f"<{self.tag}{self.props_to_html()}>"
+        else:
+            return f"<{self.tag}{self.props_to_html()}>{self.text}</{self.tag}>"
+
+
+class ParentNode(HTMLNode):
+    """Represents an HTML element that wraps child nodes."""
+
+    def __init__(self, tag, children, props=None):
+        super().__init__(tag, children, None, props)
+
+    def to_html(self):
+        if self.tag is None:
+            # should not happen for ParentNode
+            return "".join(child.to_html() for child in self.children)
         inner_html = "".join(child.to_html() for child in self.children)
-        return f"<{self.tag}{attr_str}>{inner_html}</{self.tag}>"
+        return f"<{self.tag}{self.props_to_html()}>{inner_html}</{self.tag}>"
